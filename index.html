@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Catch the Falling Balls</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #87CEFA, #fefefe);
+        }
+        canvas {
+            background: rgba(255, 255, 255, 0.2);
+            display: block;
+            margin: auto;
+            border: 2px solid black;
+            border-radius: 10px;
+            max-width: 100%;
+            height: auto;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background: #28a745;
+            color: white;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .info {
+            font-size: 20px;
+            font-weight: bold;
+            color: black;
+            display: flex;
+            justify-content: space-between;
+            width: 400px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Catch the Falling Balls</h1>
+    <div class="info">
+        <span id="score">Score: 0</span>
+        <span id="lives">Lives: 3 ❤️</span>
+    </div>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+    <br>
+    <button onclick="togglePause()">Pause/Resume</button>
+    <button onclick="restartGame()">Restart</button>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreDisplay = document.getElementById("score");
+        const livesDisplay = document.getElementById("lives");
+        
+        let basketImg = new Image();
+        basketImg.src = "https://i.imgur.com/N5uCbDu.png";
+        
+        let colors = ["red", "blue", "green", "yellow", "purple"];
+        
+        let basket = { x: 175, y: 450, width: 70, height: 50 };
+        let objects = [];
+        let score = 0;
+        let lives = 3;
+        let gameOver = false;
+        let paused = false;
+        let objectSpeed = 4;
+        let spawnInterval = 800;
+        
+        document.addEventListener("keydown", moveBasket);
+        canvas.addEventListener("mousemove", moveBasketWithMouse);
+        canvas.addEventListener("touchmove", moveBasketWithTouch);
+        
+        function restartGame() {
+            score = 0;
+            lives = 3;
+            gameOver = false;
+            paused = false;
+            objectSpeed = 4;
+            spawnInterval = 800;
+            objects = [];
+            scoreDisplay.textContent = "Score: " + score;
+            livesDisplay.textContent = "Lives: " + lives + " ❤️";
+            clearInterval(spawnTimer);
+            spawnTimer = setInterval(createObject, spawnInterval);
+            draw();
+        }
+        
+        function moveBasket(e) {
+            if (e.key === "ArrowLeft" && basket.x > 0) {
+                basket.x -= 30;
+            } else if (e.key === "ArrowRight" && basket.x < canvas.width - basket.width) {
+                basket.x += 30;
+            }
+        }
+        
+        function moveBasketWithMouse(e) {
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = e.clientX - rect.left;
+            basket.x = Math.min(Math.max(mouseX - basket.width / 2, 0), canvas.width - basket.width);
+        }
+        
+        function moveBasketWithTouch(e) {
+            let rect = canvas.getBoundingClientRect();
+            let touchX = e.touches[0].clientX - rect.left;
+            basket.x = Math.min(Math.max(touchX - basket.width / 2, 0), canvas.width - basket.width);
+            e.preventDefault();
+        }
+        
+        function createObject() {
+            if (!paused && !gameOver) {
+                let x = Math.random() * (canvas.width - 30);
+                let color = colors[Math.floor(Math.random() * colors.length)];
+                objects.push({ x, y: 0, width: 30, height: 30, color });
+            }
+        }
+        
+        function updateObjects() {
+            for (let i = objects.length - 1; i >= 0; i--) {
+                objects[i].y += objectSpeed;
+                
+                if (
+                    objects[i].y + objects[i].height > basket.y &&
+                    objects[i].x + objects[i].width > basket.x &&
+                    objects[i].x < basket.x + basket.width
+                ) {
+                    score++;
+                    scoreDisplay.textContent = "Score: " + score;
+                    objects.splice(i, 1);
+                    if (score === 10 || score === 20 || score === 50 || score === 100) {
+                        lives += (score === 50 || score === 100) ? 2 : 1;
+                    }
+                    livesDisplay.textContent = `Lives: ${lives} ❤️`;
+                    
+                    if (score === 10) {
+                        objectSpeed = 6; 
+                        spawnInterval = 600;
+                    }
+                    if (score === 20) {
+                        objectSpeed = 8; 
+                        spawnInterval = 400;
+                    }
+                    if (score === 50) {
+                        objectSpeed = 10;
+                        spawnInterval = 300;
+                    }
+                    if (score === 100) {
+                        objectSpeed = 12;
+                        spawnInterval = 200;
+                    }
+                    clearInterval(spawnTimer);
+                    spawnTimer = setInterval(createObject, spawnInterval);
+                } else if (objects[i].y > canvas.height) {
+                    lives--;
+                    livesDisplay.textContent = `Lives: ${lives} ❤️`;
+                    objects.splice(i, 1);
+                    if (lives === 0) gameOver = true;
+                }
+            }
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            objects.forEach(obj => {
+                ctx.fillStyle = obj.color;
+                ctx.beginPath();
+                ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.drawImage(basketImg, basket.x, basket.y, basket.width, basket.height);
+            
+            if (gameOver) {
+                ctx.fillStyle = "red";
+                ctx.font = "30px Arial";
+                ctx.fillText("Game Over!", canvas.width / 2 - 70, canvas.height / 2);
+                return;
+            }
+            if (!paused) {
+                updateObjects();
+                requestAnimationFrame(draw);
+            }
+        }
+        
+        let spawnTimer = setInterval(createObject, spawnInterval);
+        draw();
+    </script>
+</body>
+</html>
