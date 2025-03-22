@@ -187,7 +187,15 @@
                 requestAnimationFrame(draw);
             }
         }
-        
+        <script>
+    function togglePause() {
+        paused = !paused;
+        if (!paused && !gameOver) {
+            draw(); // Resume animation if not game over
+        }
+    }
+</script>
+
         let spawnTimer = setInterval(createObject, spawnInterval);
         draw();
     </script>
